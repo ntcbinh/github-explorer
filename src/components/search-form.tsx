@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import { Search } from "../icons";
 import { UI_CONFIG } from "../constants";
-
-interface SearchFormProps {
-  onSubmit: (username: string) => void;
-  isLoading: boolean;
-  initialValue?: string;
-}
+import type { SearchFormProps } from "../interfaces";
 
 export function SearchForm({ onSubmit, isLoading, initialValue = "" }: SearchFormProps) {
   const [username, setUsername] = useState(initialValue);

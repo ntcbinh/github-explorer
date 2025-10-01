@@ -1,10 +1,6 @@
 import React from "react";
 import { GitFork, Star } from "../icons";
-import type { GitHubRepo } from "../types/github";
-
-interface RepoListItemProps {
-  repo: GitHubRepo;
-}
+import type { RepoListItemProps } from "../interfaces";
 
 export const RepoListItem = React.memo<RepoListItemProps>(({ repo }) => {
   return (

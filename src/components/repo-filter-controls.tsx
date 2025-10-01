@@ -1,24 +1,28 @@
 import React from "react";
 import { Search } from "../icons";
-import type { SortOption } from "../constants";
-
-interface RepoFilterControlsProps {
-  onSortChange: (value: SortOption) => void;
-  onFilterChange: (value: string) => void;
-  filterQuery: string;
-}
+import { Input, Select } from ".";
+import { SORT_OPTIONS, type SortOption } from "../constants";
+import type { RepoFilterControlsProps } from "../interfaces";
 
 export const RepoFilterControls = React.memo<RepoFilterControlsProps>(
-  ({ onSortChange, onFilterChange, filterQuery }) => {
+  ({ onSortChange, onFilterChange, filterQuery, sortValue, options }) => {
+    const fallbackOptions: { value: SortOption; label: string }[] = [
+      { value: SORT_OPTIONS.STARS, label: "Sort by Stars" },
+      { value: SORT_OPTIONS.FORKS, label: "Sort by Forks" },
+      { value: SORT_OPTIONS.UPDATED, label: "Sort by Last Updated" },
+    ];
+
+    const renderedOptions = options && options.length > 0 ? options : fallbackOptions;
+
     return (
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="relative flex-grow">
-          <input
+          <Input
             type="text"
             placeholder="Find a repository..."
             value={filterQuery}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={(e) => onFilterChange((e.target as HTMLInputElement).value)}
+            className="pl-10"
             aria-label="Filter repositories"
           />
           <Search
@@ -26,16 +30,12 @@ export const RepoFilterControls = React.memo<RepoFilterControlsProps>(
             aria-hidden="true"
           />
         </div>
-        <select
-          defaultValue="stars"
-          onChange={(e) => onSortChange(e.target.value as SortOption)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        <Select
+          value={sortValue ?? "stars"}
+          onChange={(e) => onSortChange((e.target as HTMLSelectElement).value as SortOption)}
           aria-label="Sort repositories by"
-        >
-          <option value="stars">Sort by Stars</option>
-          <option value="forks">Sort by Forks</option>
-          <option value="updated">Sort by Last Updated</option>
-        </select>
+          items={renderedOptions}
+        />
       </div>
     );
   },

@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
 import { ExternalLink, Sparkles, LoaderCircle } from "../icons";
 import { ErrorDisplay } from "./error-display";
-import { ERROR_MESSAGES, GEMINI_CONSTS, SCHEMAS, STATUS } from "../constants";
+import { ERROR_MESSAGES, STATUS } from "../constants";
 import { AiInsightDisplay } from "./ai-insight-display";
 import type { AiSummaryState, UserProfileCardProps } from "../interfaces";
-import { formatStringByTemplate } from "../helpers/string.helper";
+import { fetchGeminiInsight } from "../api/gemini";
 
 export const UserProfileCard = ({ user, repos }: UserProfileCardProps) => {
   const [aiSummary, setAiSummary] = useState<AiSummaryState>({
@@ -16,64 +16,15 @@ export const UserProfileCard = ({ user, repos }: UserProfileCardProps) => {
   const handleGenerateAiSummary = useCallback(async () => {
     setAiSummary({ status: STATUS.LOADING, data: null, error: null });
 
-    const topRepos = [...repos]
-      .sort((a, b) => b.stargazers_count - a.stargazers_count)
-      .slice(0, 10);
-    const languages = repos.reduce((acc: Record<string, number>, repo) => {
-      if (repo.language) {
-        acc[repo.language] = (acc[repo.language] || 0) + 1;
-      }
-      return acc;
-    }, {});
-    const topLanguages = Object.entries(languages)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map((entry) => entry[0]);
-
-    const userQuery = formatStringByTemplate(GEMINI_CONSTS.USER_QUERY, {
-      name: user.name || user.login,
-      bio: user.bio || "Not provided",
-      topRepos: topRepos.map((r) => r.name).join(", "),
-      topLanguages: topLanguages.join(", "),
-    });
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      setAiSummary({ status: STATUS.ERROR, data: null, error: ERROR_MESSAGES.MISSING_API_KEY });
-      return;
-    }
-
-    const geminiApiUrl = import.meta.env.VITE_GEMINI_API_URL as string | undefined;
-    const apiUrl = formatStringByTemplate(geminiApiUrl, { apiKey });
-
     try {
-      const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: { parts: [{ text: GEMINI_CONSTS.SYSTEM_PROMPT }] },
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: SCHEMAS.GEMINI_JSON_SCHEMA,
-        },
-      };
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error(`API request failed with status ${res.status}`);
-      const data = await res.json();
-      const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!jsonText) throw new Error("Could not extract JSON from API response.");
-
-      const parsedJson = JSON.parse(jsonText);
-      setAiSummary({ status: STATUS.SUCCESS, data: parsedJson, error: null });
+      const insight = await fetchGeminiInsight(user, repos);
+      setAiSummary({ status: STATUS.SUCCESS, data: insight, error: null });
     } catch (err) {
       console.error("AI Summary Error:", err);
       setAiSummary({
         status: STATUS.ERROR,
         data: null,
-        error: err instanceof Error ? err.message : "An unknown error occurred",
+        error: err instanceof Error ? err.message : ERROR_MESSAGES.AI_GENERATION_ERROR,
       });
     }
   }, [user, repos]);

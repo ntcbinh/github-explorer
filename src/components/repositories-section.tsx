@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "../icons";
-import type { GitHubRepo } from "../types/github";
 import { RepoFilterControls } from "./repo-filter-controls";
 import { RepoListItem } from "./repo-list-item";
 import { useDebounce } from "../hooks/use-debounce";
 import { API_CONFIG, SORT_OPTIONS, type SortOption } from "../constants";
-
-interface RepositoriesSectionProps {
-  repos: GitHubRepo[];
-}
+import type { RepositoriesSectionProps } from "../interfaces";
+import {
+  filterReposByName,
+  sortRepos,
+  paginateRepos,
+  calcTotalPages,
+} from "../helpers/repo.helper";
 
 export const RepositoriesSection = React.memo<RepositoriesSectionProps>(({ repos }) => {
   const [filterQuery, setFilterQuery] = useState("");
@@ -17,18 +19,8 @@ export const RepositoriesSection = React.memo<RepositoriesSectionProps>(({ repos
   const debouncedFilterQuery = useDebounce(filterQuery, API_CONFIG.FILTER_DEBOUNCE_DELAY);
 
   const filteredAndSortedRepos = useMemo(() => {
-    return repos
-      .filter((repo) => repo.name.toLowerCase().includes(debouncedFilterQuery.toLowerCase()))
-      .sort((a, b) => {
-        switch (sortOption) {
-          case SORT_OPTIONS.FORKS:
-            return b.forks_count - a.forks_count;
-          case SORT_OPTIONS.UPDATED:
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-          default:
-            return b.stargazers_count - a.stargazers_count;
-        }
-      });
+    const filtered = filterReposByName(repos, debouncedFilterQuery);
+    return sortRepos(filtered, sortOption);
   }, [repos, debouncedFilterQuery, sortOption]);
 
   useEffect(() => {
@@ -36,11 +28,13 @@ export const RepositoriesSection = React.memo<RepositoriesSectionProps>(({ repos
   }, [debouncedFilterQuery, sortOption]);
 
   const paginatedRepos = useMemo(() => {
-    const startIndex = (currentPage - 1) * API_CONFIG.REPOS_DISPLAY_PER_PAGE;
-    return filteredAndSortedRepos.slice(startIndex, startIndex + API_CONFIG.REPOS_DISPLAY_PER_PAGE);
+    return paginateRepos(filteredAndSortedRepos, currentPage, API_CONFIG.REPOS_DISPLAY_PER_PAGE);
   }, [filteredAndSortedRepos, currentPage]);
 
-  const totalPages = Math.ceil(filteredAndSortedRepos.length / API_CONFIG.REPOS_DISPLAY_PER_PAGE);
+  const totalPages = calcTotalPages(
+    filteredAndSortedRepos.length,
+    API_CONFIG.REPOS_DISPLAY_PER_PAGE,
+  );
 
   const handleSortChange = useCallback((value: SortOption) => {
     setSortOption(value);
@@ -75,6 +69,7 @@ export const RepositoriesSection = React.memo<RepositoriesSectionProps>(({ repos
         onSortChange={handleSortChange}
         onFilterChange={handleFilterChange}
         filterQuery={filterQuery}
+        sortValue={sortOption}
       />
       <ul className="space-y-4" role="list">
         {paginatedRepos.map((repo) => (

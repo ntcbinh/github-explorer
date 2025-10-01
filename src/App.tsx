@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
-import { useDebounce } from "./hooks/use-debounce";
-import { useGitHubUser } from "./hooks/use-github-user";
-import { WelcomeScreen } from "./components/welcome-screen";
-import { LoadingSpinner } from "./components/loading-spinner";
-import { ErrorDisplay } from "./components/error-display";
-import { UserProfileCard } from "./components/user-profile-card";
-import { RepositoriesSection } from "./components/repositories-section";
-import { AppHeader } from "./components/app-header";
+import { useDebounce, useGitHubUser } from "./hooks";
+import {
+  AppHeader,
+  ErrorDisplay,
+  LoadingSpinner,
+  RepositoriesSection,
+  UserProfileCard,
+  WelcomeScreen,
+} from "./components";
 import { API_CONFIG, ERROR_MESSAGES, STATUS } from "./constants";
 
 function App() {
@@ -43,7 +44,7 @@ function App() {
     <div className="bg-gray-50 min-w-screen min-h-screen font-sans text-gray-800">
       <AppHeader
         onSearch={handleSearch}
-        isLoading={status === "loading"}
+        isLoading={status === STATUS.LOADING}
         currentUsername={usernameQuery}
       />
       <main className="container w-full mx-auto p-4 md:p-6">
